@@ -45,8 +45,9 @@ app.post("/videos", (req: Request, res: Response) => {
       id: Date.now(),
       title,
       author,
-      canBeDownloaded: canBeDownloaded || true,
-      minAgeRestriction: minAgeRestriction || null,
+      canBeDownloaded: canBeDownloaded !== undefined ? canBeDownloaded : true,
+      minAgeRestriction:
+        minAgeRestriction !== undefined ? minAgeRestriction : null,
       createdAt: new Date().toISOString(),
       publicationDate: new Date().toISOString(),
       availableResolutions,
@@ -57,7 +58,7 @@ app.post("/videos", (req: Request, res: Response) => {
   }
 });
 
-app.delete("/videos", (req: Request, res: Response) => {
+app.delete("/testing/all-data", (req: Request, res: Response) => {
   videos.splice(0, videos.length);
   res.send(204);
 });
