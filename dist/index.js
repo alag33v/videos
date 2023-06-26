@@ -25,30 +25,32 @@ app.get("/videos", (req, res) => {
 app.post("/videos", (req, res) => {
     const { title, author, availableResolutions, canBeDownloaded, minAgeRestriction, } = req.body;
     if (!(title === null || title === void 0 ? void 0 : title.trim()) || title.length > 40) {
-        res.status(400).send(showError("Failed to create new video", "title"));
+        return res
+            .status(400)
+            .send(showError("Failed to create new video", "title"));
     }
-    else if (!(author === null || author === void 0 ? void 0 : author.trim()) || author.length > 20) {
-        res.status(400).send(showError("Failed to create new video", "author"));
+    if (!(author === null || author === void 0 ? void 0 : author.trim()) || author.length > 20) {
+        return res
+            .status(400)
+            .send(showError("Failed to create new video", "author"));
     }
-    else if (!availableResolutions.length) {
-        res
+    if (!availableResolutions.length) {
+        return res
             .status(400)
             .send(showError("Failed to create new video", "availableResolutions"));
     }
-    else {
-        const newVideo = {
-            id: Date.now(),
-            title,
-            author,
-            canBeDownloaded: canBeDownloaded !== undefined ? canBeDownloaded : true,
-            minAgeRestriction: minAgeRestriction !== undefined ? minAgeRestriction : null,
-            createdAt: new Date().toISOString(),
-            publicationDate: new Date().toISOString(),
-            availableResolutions,
-        };
-        videos.push(newVideo);
-        res.status(201).send(newVideo);
-    }
+    const newVideo = {
+        id: Date.now(),
+        title,
+        author,
+        canBeDownloaded: canBeDownloaded !== null && canBeDownloaded !== void 0 ? canBeDownloaded : false,
+        minAgeRestriction: minAgeRestriction !== null && minAgeRestriction !== void 0 ? minAgeRestriction : null,
+        createdAt: new Date().toISOString(),
+        publicationDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
+        availableResolutions,
+    };
+    videos.push(newVideo);
+    res.status(201).send(newVideo);
 });
 app.delete("/testing/all-data", (req, res) => {
     videos.splice(0, videos.length);
@@ -69,11 +71,27 @@ app.put("/videos/:videoId", (req, res) => {
     const updatedVideo = req.body;
     const videoIndex = videos.findIndex((v) => v.id === id);
     if (videoIndex !== -1) {
+        const { title, author, availableResolutions } = req.body;
+        if (!(title === null || title === void 0 ? void 0 : title.trim()) || title.length > 40) {
+            return res
+                .status(400)
+                .send(showError("Failed to update new video", "title"));
+        }
+        if (!(author === null || author === void 0 ? void 0 : author.trim()) || author.length > 20) {
+            return res
+                .status(400)
+                .send(showError("Failed to update new video", "author"));
+        }
+        if (!availableResolutions.length) {
+            return res
+                .status(400)
+                .send(showError("Failed to update new video", "availableResolutions"));
+        }
         videos[videoIndex] = Object.assign(Object.assign({}, videos[videoIndex]), updatedVideo);
         res.status(204);
     }
     else {
-        res.status(400).send(showError("video not found", "id"));
+        res.status(404);
     }
 });
 app.delete("/videos/:videoId", (req, res) => {
