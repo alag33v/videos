@@ -23,44 +23,107 @@ const showError = (message, field) => {
 app.get("/videos", (req, res) => {
     res.status(200).send(videos);
 });
-app.post("/videos", (req, res) => {
+app.post("/", (req, res) => {
     const errorsMessages = [];
-    const { title, author, availableResolutions, canBeDownloaded, minAgeRestriction, } = req.body;
-    if (typeof title !== "string" || !(title === null || title === void 0 ? void 0 : title.trim()) || title.length > 40) {
+    const title = req.body.title;
+    const author = req.body.author;
+    const availableResolutions = req.body.availableResolutions;
+    if (!title ||
+        typeof title !== "string" ||
+        !title.trim() ||
+        title.length > 40) {
         errorsMessages.push({
-            message: "Failed to update new video",
+            message: "Title is incorrect;",
             field: "title",
         });
     }
-    if (typeof author !== "string" || !(author === null || author === void 0 ? void 0 : author.trim()) || author.length > 20) {
+    if (!author ||
+        typeof author !== "string" ||
+        !author.trim() ||
+        author.length > 20) {
         errorsMessages.push({
-            message: "Failed to update new video",
+            message: "Author is incorrect;",
             field: "author",
         });
     }
-    if (availableResolutions.length &&
-        !availableResolutions.every((resolution) => Object.values(types_1.VideoResolution).includes(resolution))) {
+    if (!availableResolutions ||
+        !availableResolutions.every((r) => Object.keys(types_1.VideoResolution).includes(r))) {
         errorsMessages.push({
-            message: "Failed to update new video",
+            message: "AvailableResolutions is incorrect;",
             field: "availableResolutions",
         });
     }
-    if (errorsMessages.length) {
-        return res.status(400).send({ errorsMessages });
+    if (errorsMessages.length != 0) {
+        res.status(400).send({ errorsMessages: errorsMessages });
     }
-    const newVideo = {
-        id: Date.now(),
-        title,
-        author,
-        canBeDownloaded: canBeDownloaded !== null && canBeDownloaded !== void 0 ? canBeDownloaded : false,
-        minAgeRestriction: minAgeRestriction !== null && minAgeRestriction !== void 0 ? minAgeRestriction : null,
-        createdAt: new Date().toISOString(),
-        publicationDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString(),
-        availableResolutions,
-    };
-    videos.push(newVideo);
-    res.status(201).send(newVideo);
+    else {
+        const createdAt = new Date();
+        let publicationDate = new Date();
+        publicationDate.setDate(publicationDate.getDate() + 1);
+        const newVideo = {
+            id: +new Date(),
+            title,
+            author,
+            availableResolutions,
+            canBeDownloaded: false,
+            minAgeRestriction: null,
+            createdAt: createdAt.toISOString(),
+            publicationDate: publicationDate.toISOString(),
+        };
+        videos.push(newVideo);
+        res.status(201).send(newVideo);
+    }
 });
+// app.post("/videos", (req: Request, res: Response) => {
+//   const errorsMessages: Object[] = [];
+//   const {
+//     title,
+//     author,
+//     availableResolutions,
+//     canBeDownloaded,
+//     minAgeRestriction,
+//   } = req.body;
+//   if (typeof title !== "string" || !title?.trim() || title.length > 40) {
+//     errorsMessages.push({
+//       message: "Failed to update new video",
+//       field: "title",
+//     });
+//   }
+//   if (typeof author !== "string" || !author?.trim() || author.length > 20) {
+//     errorsMessages.push({
+//       message: "Failed to update new video",
+//       field: "author",
+//     });
+//   }
+//   if (
+//     availableResolutions.length &&
+//     !availableResolutions.every((resolution: any) =>
+//       Object.values(VideoResolution).includes(resolution)
+//     )
+//   ) {
+//     errorsMessages.push({
+//       message: "Failed to update new video",
+//       field: "availableResolutions",
+//     });
+//   }
+//   if (errorsMessages.length) {
+//     return res.status(400).send({ errorsMessages });
+//   }
+//   const newVideo: VideoType = {
+//     id: Date.now(),
+//     title,
+//     author,
+//     canBeDownloaded: canBeDownloaded ?? false,
+//     minAgeRestriction: minAgeRestriction ?? null,
+//     createdAt: new Date().toISOString(),
+//     publicationDate: new Date(
+//       new Date().setDate(new Date().getDate() + 1)
+//     ).toISOString(),
+//     availableResolutions,
+//   };
+//   videos.push(newVideo);
+//   res.status(201).send(newVideo);
+// });
 app.delete("/testing/all-data", (req, res) => {
     videos.splice(0, videos.length);
     res.send(204);
