@@ -8,16 +8,6 @@ const port = 3000;
 app.use(bodyParser.json());
 
 const videos: VideoType[] = [];
-const showError = (message: string, field: string) => {
-  return {
-    errorsMessages: [
-      {
-        message,
-        field,
-      },
-    ],
-  };
-};
 
 app.get("/videos", (req: Request, res: Response) => {
   res.status(200).send(videos);
@@ -25,28 +15,22 @@ app.get("/videos", (req: Request, res: Response) => {
 
 app.post("/videos", (req: Request, res: Response) => {
   const errorsMessages: Object[] = [];
-  const {
-    title,
-    author,
-    availableResolutions,
-    canBeDownloaded,
-    minAgeRestriction,
-  } = req.body;
+  const { title, author, availableResolutions } = req.body;
 
   if (typeof title !== "string" || !title?.trim() || title.length > 40) {
     errorsMessages.push({
-      message: "Failed to update new video",
+      message: "Title is incorrect",
       field: "title",
     });
   }
   if (typeof author !== "string" || !author?.trim() || author.length > 20) {
     errorsMessages.push({
-      message: "Failed to update new video",
+      message: "Author is incorrect",
       field: "author",
     });
   }
   if (
-    availableResolutions.length &&
+    availableResolutions?.length &&
     !availableResolutions.every((resolution: any) =>
       Object.values(VideoResolution).includes(resolution)
     )
@@ -65,8 +49,8 @@ app.post("/videos", (req: Request, res: Response) => {
     id: Date.now(),
     title,
     author,
-    canBeDownloaded: canBeDownloaded ?? false,
-    minAgeRestriction: minAgeRestriction ?? null,
+    canBeDownloaded: false,
+    minAgeRestriction: null,
     createdAt: new Date().toISOString(),
     publicationDate: new Date(
       new Date().setDate(new Date().getDate() + 1)
@@ -75,7 +59,7 @@ app.post("/videos", (req: Request, res: Response) => {
   };
 
   videos.push(newVideo);
-  res.status(201).send(newVideo);
+  return res.status(201).send(newVideo);
 });
 
 app.delete("/testing/all-data", (req: Request, res: Response) => {
@@ -94,7 +78,9 @@ app.get("/videos/:videoId", (req: Request, res: Response) => {
   }
 });
 
-app.put("/:videoId", (req: Request, res: Response) => {
+app.put("/videos/:videoId", (req: Request, res: Response) => {
+  console.log("req", req);
+  console.log("res", res);
   const errorsMessages: Object[] = [];
   const title = req.body.title;
   const author = req.body.author;
@@ -102,30 +88,21 @@ app.put("/:videoId", (req: Request, res: Response) => {
   const canBeDownloaded = req.body.canBeDownloaded;
   const minAgeRestriction = req.body.minAgeRestriction;
   const publicationDate = req.body.publicationDate;
-  if (
-    !title ||
-    typeof title !== "string" ||
-    !title.trim() ||
-    title.length > 40
-  ) {
+
+  if (typeof title !== "string" || !title.trim() || title.length > 40) {
     errorsMessages.push({
       message: "Title is incorrect;",
       field: "title",
     });
   }
-  if (
-    !author ||
-    typeof author !== "string" ||
-    !author.trim() ||
-    author.length > 20
-  ) {
+  if (typeof author !== "string" || !author.trim() || author.length > 20) {
     errorsMessages.push({
       message: "Author is incorrect;",
       field: "author",
     });
   }
   if (
-    !availableResolutions ||
+    availableResolutions?.length &&
     !availableResolutions.every((r: any) =>
       Object.keys(VideoResolution).includes(r)
     )
@@ -135,105 +112,47 @@ app.put("/:videoId", (req: Request, res: Response) => {
       field: "availableResolutions",
     });
   }
-  if (!canBeDownloaded || typeof canBeDownloaded !== "boolean") {
+  if (canBeDownloaded && typeof canBeDownloaded !== "boolean") {
     errorsMessages.push({
       message: "CanBeDownloaded is incorrect;",
       field: "canBeDownloaded",
     });
   }
   if (
-    !minAgeRestriction ||
-    typeof minAgeRestriction !== "number" ||
-    minAgeRestriction < 1 ||
-    minAgeRestriction > 18
+    minAgeRestriction &&
+    (typeof minAgeRestriction !== "number" ||
+      minAgeRestriction < 1 ||
+      minAgeRestriction > 18)
   ) {
     errorsMessages.push({
       message: "MinAgeRestriction is incorrect;",
       field: "minAgeRestriction",
     });
   }
-  if (
-    !publicationDate ||
-    typeof publicationDate !== "string" ||
-    !publicationDate.trim()
-  ) {
+  if (publicationDate && typeof publicationDate !== "string") {
     errorsMessages.push({
       message: "PublicationDate is incorrect;",
       field: "publicationDate",
     });
   }
-  if (errorsMessages.length != 0) {
-    res.status(400).send({ errorsMessages: errorsMessages });
+  if (errorsMessages.length) {
+    return res.status(400).send({ errorsMessages: errorsMessages });
+  }
+
+  let video = videos.find((p) => p.id === +req.params.videoId);
+
+  if (video) {
+    video.title = title;
+    video.author = author;
+    video.availableResolutions = availableResolutions;
+    video.canBeDownloaded = canBeDownloaded;
+    video.minAgeRestriction = minAgeRestriction;
+    video.publicationDate = publicationDate;
+    res.send(204);
   } else {
-    let video = videos.find((p) => p.id === +req.params.videoId);
-    if (video) {
-      video.title = title;
-      video.author = author;
-      video.availableResolutions = availableResolutions;
-      video.canBeDownloaded = canBeDownloaded;
-      video.minAgeRestriction = minAgeRestriction;
-      video.publicationDate = publicationDate;
-      res.send(204);
-    } else {
-      res.send(404);
-    }
+    res.send(404);
   }
 });
-
-// app.put("/videos/:videoId", (req: Request, res: Response) => {
-//   const errorsMessages: Object[] = [];
-//   const id = parseInt(req.params.videoId);
-//   const updatedVideo = req.body;
-//   const videoIndex = videos.findIndex((v: VideoType) => v.id === id);
-
-//   if (videoIndex !== -1) {
-//     const { title, author, availableResolutions, canBeDownloaded } = req.body;
-
-//     const title = req.body.title;
-//     const author = req.body.author;
-//     const availableResolutions = req.body.availableResolutions;
-//     const canBeDownloaded = req.body.canBeDownloaded;
-//     const minAgeRestriction = req.body.minAgeRestriction;
-//     const publicationDate = req.body.publicationDate;
-
-//     if (typeof title !== "string" || !title?.trim() || title.length > 40) {
-//       errorsMessages.push({
-//         message: "Failed to update new video",
-//         field: "title",
-//       });
-//     }
-//     if (typeof author !== "string" || !author?.trim() || author.length > 20) {
-//       errorsMessages.push({
-//         message: "Failed to update new video",
-//         field: "author",
-//       });
-//     }
-//     if (
-//       availableResolutions.length &&
-//       !availableResolutions.every((resolution: any) =>
-//         Object.values(VideoResolution).includes(resolution)
-//       )
-//     ) {
-//       errorsMessages.push({
-//         message: "Failed to update new video",
-//         field: "availableResolutions",
-//       });
-//     }
-
-//     if (errorsMessages.length) {
-//       return res.status(400).send({ errorsMessages });
-//     }
-
-//     videos[videoIndex] = {
-//       ...videos[videoIndex],
-//       ...updatedVideo,
-//     };
-
-//     res.sendStatus(204);
-//   } else {
-//     res.sendStatus(404);
-//   }
-// });
 
 app.delete("/videos/:videoId", (req: Request, res: Response) => {
   const id = parseInt(req.params.videoId);
