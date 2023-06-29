@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
-import { VideoType } from "./types";
+import { VideoResolution, VideoType } from "./types";
 
 const app = express();
 const port = 3000;
@@ -24,6 +24,7 @@ app.get("/videos", (req: Request, res: Response) => {
 });
 
 app.post("/videos", (req: Request, res: Response) => {
+  const errorsMessages: Object[] = [];
   const {
     title,
     author,
@@ -32,20 +33,32 @@ app.post("/videos", (req: Request, res: Response) => {
     minAgeRestriction,
   } = req.body;
 
-  if (!title?.trim() || title.length > 40) {
-    return res
-      .status(400)
-      .send(showError("Failed to create new video", "title"));
+  if (typeof title !== "string" || !title?.trim() || title.length > 40) {
+    errorsMessages.push({
+      message: "Failed to update new video",
+      field: "title",
+    });
   }
-  if (!author?.trim() || author.length > 20) {
-    return res
-      .status(400)
-      .send(showError("Failed to create new video", "author"));
+  if (typeof author !== "string" || !author?.trim() || author.length > 20) {
+    errorsMessages.push({
+      message: "Failed to update new video",
+      field: "author",
+    });
   }
-  if (!availableResolutions.length) {
-    return res
-      .status(400)
-      .send(showError("Failed to create new video", "availableResolutions"));
+  if (
+    availableResolutions.length &&
+    !availableResolutions.every((resolution: any) =>
+      Object.values(VideoResolution).includes(resolution)
+    )
+  ) {
+    errorsMessages.push({
+      message: "Failed to update new video",
+      field: "availableResolutions",
+    });
+  }
+
+  if (errorsMessages.length) {
+    return res.status(400).send({ errorsMessages });
   }
 
   const newVideo: VideoType = {
@@ -82,6 +95,7 @@ app.get("/videos/:videoId", (req: Request, res: Response) => {
 });
 
 app.put("/videos/:videoId", (req: Request, res: Response) => {
+  const errorsMessages: Object[] = [];
   const id = parseInt(req.params.videoId);
   const updatedVideo = req.body;
   const videoIndex = videos.findIndex((v: VideoType) => v.id === id);
@@ -89,29 +103,42 @@ app.put("/videos/:videoId", (req: Request, res: Response) => {
   if (videoIndex !== -1) {
     const { title, author, availableResolutions } = req.body;
 
-    if (!title?.trim() || title.length > 40) {
-      return res
-        .status(400)
-        .send(showError("Failed to update new video", "title"));
+    if (typeof title !== "string" || !title?.trim() || title.length > 40) {
+      errorsMessages.push({
+        message: "Failed to update new video",
+        field: "title",
+      });
     }
-    if (!author?.trim() || author.length > 20) {
-      return res
-        .status(400)
-        .send(showError("Failed to update new video", "author"));
+    if (typeof author !== "string" || !author?.trim() || author.length > 20) {
+      errorsMessages.push({
+        message: "Failed to update new video",
+        field: "author",
+      });
     }
-    if (!availableResolutions.length) {
-      return res
-        .status(400)
-        .send(showError("Failed to update new video", "availableResolutions"));
+    if (
+      availableResolutions.length &&
+      !availableResolutions.every((resolution: any) =>
+        Object.values(VideoResolution).includes(resolution)
+      )
+    ) {
+      errorsMessages.push({
+        message: "Failed to update new video",
+        field: "availableResolutions",
+      });
+    }
+
+    if (errorsMessages.length) {
+      return res.status(400).send({ errorsMessages });
     }
 
     videos[videoIndex] = {
       ...videos[videoIndex],
       ...updatedVideo,
     };
-    res.status(204);
+
+    res.sendStatus(204);
   } else {
-    res.status(404);
+    res.sendStatus(404);
   }
 });
 
